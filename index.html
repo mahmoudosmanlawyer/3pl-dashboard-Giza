@@ -141,10 +141,6 @@ body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <script>
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  ⚙️  CONFIG — تم التعديل بأسماء المكاتب والباسوردات والرابط    ║
-// ╚══════════════════════════════════════════════════════════════╝
-
 const CONFIG = {
   riderDataUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQz6D0aPsHtAz4fW9-D25Qw0l8lBqwIe0iBumdw52wpMMEp2RTE7-fEMS607EK_DnIKyDO1cIzEGMcS/pub?gid=999840478&single=true&output=csv',
 
@@ -173,18 +169,9 @@ const CONFIG = {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════
-// App logic — مش محتاج تعدل تحت الخط ده
-// ═══════════════════════════════════════════════════════════════
-
 let _riders = [], _flt = 'all', _off = '';
 
 window.onload = function () {
-  if (CONFIG.riderDataUrl === 'PASTE_CSV_URL_HERE') {
-    document.getElementById('cfg-warn-box').innerHTML =
-      '<div class="cfg-warn">⚠️ <b>لازم تحط الـ CSV URL في CONFIG</b><br>' +
-      'افتح الملف ده في text editor وحط الـ URL في <code>riderDataUrl</code></div>';
-  }
   const names = Object.keys(CONFIG.offices);
   const el = document.getElementById('olist');
   if (!names.length) {
@@ -237,13 +224,6 @@ function loadAndShowApp() {
   document.getElementById('tbody').innerHTML  =
     '<tr><td colspan="5" class="ldg">⏳ جاري تحميل البيانات...</td></tr>';
 
-  if (CONFIG.riderDataUrl === 'PASTE_CSV_URL_HERE') {
-    document.getElementById('aupd').textContent = '⚠️ riderDataUrl مش محدود في CONFIG';
-    document.getElementById('tbody').innerHTML =
-      '<tr><td colspan="5" class="nor">حط الـ CSV URL الأول</td></tr>';
-    return;
-  }
-
   var url = CONFIG.riderDataUrl +
     (CONFIG.riderDataUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
 
@@ -260,6 +240,7 @@ function loadAndShowApp() {
           zone:      (r['Zone']     || '').trim(),
           phone:     (r['Phone']    || '').trim(),
           scheduled: (r['Scheduled']|| '').trim().toLowerCase() === 'yes',
+          target:    parseFloat(r['Target'] || '0') || 0,
           ts:        (r['Timestamp']|| '').trim()
         }; });
       var lastTs = '';
@@ -289,18 +270,22 @@ function doLogout() {
 function renderSum() {
   var zones = {};
   _riders.forEach(function(r){
-    if (!zones[r.zone]) zones[r.zone] = { s:0, t:0 };
-    zones[r.zone].t++;
+    if (!zones[r.zone]) zones[r.zone] = { s:0, target: r.target };
     if (r.scheduled) zones[r.zone].s++;
   });
-  var ts = _riders.filter(function(r){ return r.scheduled; }).length;
-  var tt = _riders.length;
-  var h  = sc('الإجمالي', ts, tt, tt ? ts/tt : null);
+  
+  var ts = 0, tt = 0;
+  var h = '';
+  
   Object.keys(zones).sort().forEach(function(z){
     var x = zones[z];
-    h += sc(z, x.s, x.t, x.t ? x.s/x.t : null);
+    ts += x.s;
+    tt += x.target;
+    h += sc(z, x.s, x.target, x.target ? x.s/x.target : null);
   });
-  document.getElementById('sgrid').innerHTML = h;
+
+  var grandHeader = sc('الإجمالي (Grand Total)', ts, tt, tt ? ts/tt : null);
+  document.getElementById('sgrid').innerHTML = grandHeader + h;
 }
 
 function sc(l, s, t, p) {
